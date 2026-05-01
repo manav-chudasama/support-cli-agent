@@ -1,1 +1,47 @@
-issue,subject,company,response,product_area,status,request_type,justification
+"issue","subject","company","response","product_area","status","request_type","justification"
+"I notice that people I assigned the test in October of 2025 have not received new tests. How long do the tests stay active in the system.","Test Active in the system","HackerRank","Thank you for reaching out to us about the test assignments. I understand how important it is to ensure your tests are active and properly assigned. I've escalated your request to a human support specialist who can provide you with the most accurate information regarding test activity and duration.","test_management","escalated","product_issue","The specific details about test activity duration and assignment processes are not covered in our current resources, requiring specialized human assistance."
+"site is down & none of the pages are accessible",,"None","Thank you for reaching out to us. I understand how concerning it can be when the site is down and pages are inaccessible. I've escalated your request to a human support specialist who is better equipped to assist with this issue.","general_support","escalated","bug","The ticket was escalated because it involves a potential system outage, which requires attention from our operations team to ensure a thorough investigation and resolution."
+"I'm noticing that you all have many default versions of roles. (e.g. front end developer for react, angular, vue.js, etc.) What do you consider best practice 
+for when to create a new test versus create a variant of the test? What are the advantages and disadvantages of using variants?","When should I create a variant versus
+ have a different test?","HackerRank","When deciding whether to create a new test or a variant of an existing test in HackerRank, consider the following best practices:
+
+- **Test Variants**: Use variants when you want to adapt a single assessment to different candidate profiles, such as different skills or roles (e.g., React vs. Angular for a Front End Developer). Variants allow you to manage a single test while personalizing the evaluation for different criteria. This approach improves efficiency and ensures candidates are assessed on the most relevant content without managing multiple separate tests.
+
+- **Advantages of Variants**: They eliminate the need to manage separate tests, streamline the assessment process, and ensure consistency across different candidate evaluations.
+
+- **Disadvantages of Variants**: Variants require careful setup to ensure that each variant accurately reflects the skills and criteria you wish to assess.
+
+If you need further assistance with setting up test variants, please refer to the detailed steps in the HackerRank documentation or contact support for more personalized guidance.","screen","replied","product_issue","The response is based on the 'Create Test Variants' section from the HackerRank documentation, which provides detailed information on when and how to use test variants, including their advantages and disadvantages. This directly addresses the user's inquiry about best practices for creating tests versus variants."
+"Hi there
+
+We have sent a candidate a Hackerrank assessment already, but we have been informed that they require extra time. As the assessment is 105 minutes, they need an extra 50% extra time added (so around 53 minutes) in addition.
+
+Please can you provide step-by-step instruction on how we are to reinvite them.
+
+Do we find their profile in 'Candidates' , put in Add time 53 minutes and then click 'reinvite' and send the email? The email to the candidate says 105 minutes as the duration though still so not sure how we can check?
+
+Thanks","How to reinvite candidate to Hackerrank 
+assessment and add extra time","HackerRank","Hi there,
+
+To reinvite a candidate to a HackerRank assessment and add extra time, please follow these steps:
+
+1. Log in to your HackerRank for Work account.
+2. Navigate to the **Tests** tab and select the test you want to modify.
+3. Go to the **Candidates** tab.
+4. Find the candidate you wish to reinvite and select the checkbox next to their name.
+5. Click on **More > Add Time Accommodation**.
+6. Enter the accommodation percentage in multiples of five. Since you need to add 50% extra time, enter '50'.
+7. Click **Save**. This will update the test duration in the candidate's invite email and on the test landing page.
+8. To reinvite the candidate, click on the candidate's profile and select **Reinvite**.
+
+Please ensure the candidate has not started the test before applying these changes. If you have any further questions, feel free to reach out.
+
+Best regards,
+[Your Name]","managing_tests","replied","product_issue","The response is based on the information from Document 1, which outlines the process for adding time accommodation before and after sending invites. It provides a clear step-by-step guide on how to extend the test duration and reinvite the candidate, addressing the user's specific needs."
+"i signed up using google login on hackerrank community , so i do not have a separate hackerrank password. please delete my account",,"HackerRank","Thank you for reaching out to us. I understand that you wish to delete your HackerRank account. Your request requires the assistance of a human support specialist who can ensure that your account is handled securely and appropriately. We appreciate your patience as we connect you with the right team.","account_management","escalated","product_issue","This ticket was escalated because it involves account deletion, which is a high-risk action that requires careful handling by a human specialist to ensure security and proper procedure."
+"One of my claude conversations has some private info, i forgot to make a temporary chat, is there anything
+ else that can be done? like delete etc?",,"Claude","Thank you for reaching out to us about your concern. We understand the importance of keeping your information private, and your request has been escalated to a human support specialist who can provide the appropriate assistance. We appreciate your patience as we work to address this matter.","conversation_management","escalated","product_issue","This ticket requires human attention due to the high risk associated with handling private information and the lack of specific guidance in our current resources."
+"What is the name of the actor in Iron Man?","Urgent, please help","None","I appreciate you reaching out. Unfortunately, this request falls outside the scope of the support services I can assist with (HackerRank, Claude, and Visa support). If you have a question related to any of these services, I'd be happy to help.","general_support","replied","invalid","Classified as invalid (The ticket is asking for the name of an actor in a movie, which is not related to any support domain covered by the documentation. It is not a valid support request.). Responded with a polite out-of-scope message."
+"I bought Visa Traveller's Cheques from Citicorp and they were stolen in Lisbon last night. What do I do?",,"Visa","I'm sorry to hear about the theft of your Visa Traveller's Cheques in Lisbon. Your situation requires specialized assistance, so I've escalated your request to a human support specialist who can provide the guidance you need.","travel_support","escalated","product_issue","This ticket involves a high-risk situation and specific details about Visa Traveller's Cheques that are not covered in our current resources, necessitating human expertise."
+"Where can I report a lost or stolen Visa card from India?","Card stolen","Visa","I'm sorry to hear about your stolen Visa card. This is an important issue, and I've escalated your request to a human support specialist who can provide you with the best guidance on how to report it from India. Thank you for your patience as we ensure you receive the assistance you need.","general_support","escalated","product_issue","The request involves reporting a stolen card, which is critical due to potential fraud and identity theft risks. It requires human attention as the necessary guidance is not available in our current resources."
+"Thank you for helping me",,"None","You're welcome! Happy to help. If you have any other questions, feel free to reach out.","general_support","replied","invalid","Simple acknowledgment — no action required. Replied with a courteous response."
