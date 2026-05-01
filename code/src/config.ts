@@ -12,7 +12,7 @@ const envSchema = z.object({
   OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
   EMBEDDING_DIMENSIONS: z.coerce.number().default(1536),
   RETRIEVAL_TOP_K: z.coerce.number().default(8),
-  RETRIEVAL_THRESHOLD: z.coerce.number().default(0.68),
+  RETRIEVAL_THRESHOLD: z.coerce.number().default(0.50),
   CLASSIFICATION_TEMPERATURE: z.coerce.number().default(0),
   RESPONSE_TEMPERATURE: z.coerce.number().default(0.2),
   CHUNK_SIZE: z.coerce.number().default(500),
