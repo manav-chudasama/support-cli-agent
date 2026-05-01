@@ -1,12 +1,21 @@
 /**
- * Escalation gate — rule-based + classifier-informed routing decision.
+ * Escalation gate — rule-based + classifier-informed + confidence-gated routing decision.
  *
  * DESIGN PRINCIPLE: Default to REPLIED when the corpus can answer.
  * Only escalate when the corpus genuinely cannot help OR the action
- * requires a human backend operation (refund, account restore, etc.).
+ * requires a human backend operation (refund, account restore, etc.)
+ * OR confidence is very low.
+ *
+ * NOTE: Prompt injection/jailbreak detection has been moved to safety-guard.ts
+ * which runs BEFORE this gate, so tickets reaching here are already clean.
  */
 
-import type { Classification, NormalizedTicket, RetrievedChunk } from "./schemas.js";
+import type {
+  Classification,
+  NormalizedTicket,
+  RetrievedChunk,
+  ConfidenceScore,
+} from "./schemas.js";
 
 export interface EscalationDecision {
   shouldEscalate: boolean;
@@ -29,15 +38,6 @@ const MUST_ESCALATE_PATTERNS: RegExp[] = [
   /\b(remove|add)\b.{0,15}\b(employee|interviewer|user|member|seat)\b.{0,20}\b(platform|org|team|account|workspace)\b/i,
 ];
 
-// Patterns indicating prompt injection or adversarial input
-const INJECTION_PATTERNS: RegExp[] = [
-  /\b(display|show|reveal|output|print)\b.{0,20}\b(internal|system|rules|logic|prompt|document|retrieved)\b/i,
-  /\bignore\b.{0,15}\b(previous|above|all)\b.{0,10}\binstructions?\b/i,
-  /\b(pretend|act as|you are now|roleplay as)\b/i,
-  /delete\s+all\s+files/i,
-  /récupérés/i, // French prompt injection variant
-];
-
 // Outage / all-failing patterns — requires ops team
 const OUTAGE_PATTERNS: RegExp[] = [
   /\bnone\b.{0,15}\b(of the|submissions|requests|pages)\b.{0,20}\b(working|accessible|loading|failing)\b/i,
@@ -50,14 +50,10 @@ export function evaluateEscalation(
   ticket: NormalizedTicket,
   classification: Classification,
   retrievedChunks: RetrievedChunk[],
+  confidence?: ConfidenceScore,
 ): EscalationDecision {
   const issueText = `${ticket.issue} ${ticket.subject}`;
   const reasons: string[] = [];
-
-  // ── RULE 0: Prompt injection — reply as invalid, never escalate ──────
-  if (INJECTION_PATTERNS.some((p) => p.test(issueText))) {
-    return { shouldEscalate: false, reasons: ["Prompt injection detected — replying as invalid"] };
-  }
 
   // ── RULE 1: Critical risk always escalates ───────────────────────────
   if (classification.risk_level === "critical") {
@@ -78,7 +74,6 @@ export function evaluateEscalation(
   }
 
   // ── RULE 4: Zero retrieval + NOT invalid + NOT low risk ──────────────
-  // (if corpus has nothing AND it's a real support request, escalate)
   if (
     retrievedChunks.length === 0 &&
     classification.request_type !== "invalid" &&
@@ -97,7 +92,6 @@ export function evaluateEscalation(
   }
 
   // ── RULE 6: Trust the LLM classification for high risk + no corpus ───
-  // Only escalate on LLM signal if BOTH: risk is high/critical AND corpus can't answer
   if (
     (classification.risk_level === "high" || classification.risk_level === "critical") &&
     !classification.can_answer_from_corpus &&
@@ -106,11 +100,16 @@ export function evaluateEscalation(
     reasons.push(`High risk with insufficient corpus coverage: ${classification.reasoning}`);
   }
 
-  // ── DECISION ─────────────────────────────────────────────────────────
-  if (reasons.length > 0) {
-    return { shouldEscalate: true, reasons };
+  // ── RULE 7: Confidence gate — very low confidence on real tickets ─────
+  if (
+    confidence &&
+    confidence.level === "very_low" &&
+    classification.request_type !== "invalid"
+  ) {
+    reasons.push(
+      `Very low confidence (score: ${confidence.score.toFixed(2)}) — corpus coverage insufficient for reliable answer`
+    );
   }
 
-  // Default: trust the corpus — if it has relevant content, reply
-  return { shouldEscalate: false, reasons: [] };
+  return { shouldEscalate: reasons.length > 0, reasons };
 }

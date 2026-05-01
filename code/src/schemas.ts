@@ -1,5 +1,5 @@
 /**
- * Zod schemas for all data structures used across the pipeline.
+ * Zod schemas and TypeScript types for all data structures in the pipeline.
  */
 
 import { z } from "zod/v4";
@@ -61,3 +61,101 @@ export const OutputRowSchema = z.object({
   justification: z.string().min(1),
 });
 export type OutputRow = z.infer<typeof OutputRowSchema>;
+
+// ── F1: Safety Guard ───────────────────────────────────────────────────
+export interface SafetyResult {
+  safe: boolean;
+  flagType: "injection" | "jailbreak" | "adversarial" | null;
+  flagDetail: string | null;
+  sanitizedIssue: string;
+}
+
+// ── F2: Multi-request Decomposition ────────────────────────────────────
+export interface SubRequest {
+  text: string;
+  focus: string;
+}
+
+export interface DecompositionResult {
+  isCompound: boolean;
+  subRequests: SubRequest[];
+}
+
+// ── F3: Query Expansion ────────────────────────────────────────────────
+export interface ExpandedQueries {
+  queries: string[];
+  detectedLanguage: string | null;
+}
+
+// ── F5: Confidence Scoring ─────────────────────────────────────────────
+export interface ConfidenceScore {
+  score: number;   // 0.0 – 1.0
+  level: "high" | "medium" | "low" | "very_low";
+  breakdown: {
+    retrievalQuality: number;
+    corpusCoverage: number;
+    riskPenalty: number;
+    chunkCount: number;
+  };
+}
+
+// ── F6: Structured Logging ─────────────────────────────────────────────
+export interface SubRequestLog {
+  focus: string;
+  text: string;
+  expandedQueries: string[];
+  detectedLanguage: string | null;
+  retrievedChunks: Array<{
+    title: string;
+    domain: string;
+    filePath: string;
+    score: number;
+    snippet: string;
+  }>;
+  classification: Classification;
+  confidence: ConfidenceScore;
+  escalation: {
+    shouldEscalate: boolean;
+    reasons: string[];
+  };
+  response: string;
+  justification: string;
+}
+
+export interface TicketLog {
+  ticketIndex: number;
+  timestamp: string;
+  input: {
+    issue: string;
+    subject: string;
+    company: string;
+  };
+  safety: SafetyResult;
+  decomposition: DecompositionResult;
+  subRequests: SubRequestLog[];
+  output: OutputRow;
+  timing: {
+    totalMs: number;
+    safetyMs: number;
+    decompositionMs: number;
+    expansionMs: number;
+    retrievalMs: number;
+    classificationMs: number;
+    confidenceMs: number;
+    responseMs: number;
+  };
+}
+
+export interface SummaryLog {
+  runTimestamp: string;
+  totalTickets: number;
+  replied: number;
+  escalated: number;
+  compoundTickets: number;
+  safetyFlagged: number;
+  avgConfidenceScore: number;
+  durationMs: number;
+  byCompany: Record<string, number>;
+  byRequestType: Record<string, number>;
+  byConfidenceLevel: Record<string, number>;
+}

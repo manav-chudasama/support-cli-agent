@@ -4,9 +4,9 @@
 
 import OpenAI from "openai";
 import { env } from "./config.js";
-import type { NormalizedTicket, Classification, RetrievedChunk } from "./schemas.js";
+import type { NormalizedTicket, Classification, RetrievedChunk, ConfidenceScore } from "./schemas.js";
 import type { EscalationDecision } from "./escalation.js";
-import { formatContext } from "./retriever.js";
+import { formatContext, extractCitations } from "./retriever.js";
 
 let openai: OpenAI;
 function getClient(): OpenAI {
@@ -46,6 +46,7 @@ export async function generateResponse(
   classification: Classification,
   retrievedChunks: RetrievedChunk[],
   escalation: EscalationDecision,
+  confidence?: ConfidenceScore,
 ): Promise<GeneratedResponse> {
   const context = formatContext(retrievedChunks);
 
@@ -58,7 +59,11 @@ export async function generateResponse(
     return generateInvalidResponse(ticket, classification);
   }
 
-  // Generate grounded response
+  const citations = extractCitations(retrievedChunks);
+  const confidenceNote = confidence && confidence.level !== "high"
+    ? `\nNote: confidence is ${confidence.level} (${confidence.score.toFixed(2)}) — use hedging language if the documentation is not completely clear.`
+    : "";
+
   const userPrompt = `Generate a helpful support response for this ticket.
 
 TICKET:
@@ -69,15 +74,18 @@ TICKET:
 CLASSIFICATION:
 - Request Type: ${classification.request_type}
 - Product Area: ${classification.product_area}
-
+${confidenceNote}
 RETRIEVED SUPPORT DOCUMENTATION:
 ${context}
 
 Respond with a JSON object:
 {
   "response": "The user-facing support response grounded in the documentation above",
-  "justification": "Brief explanation of which documentation was used and why this response is appropriate"
+  "justification": "Cite the specific articles used (e.g. '[Article Title] from the corpus') and explain why this response is appropriate. Start with 'Based on [source] ...' format."
 }`;
+
+  // Inject citations hint into the prompt context
+  const citationHint = citations ? `\n\nKey sources: ${citations}` : "";
 
   const response = await getClient().chat.completions.create({
     model: env.OPENAI_MODEL,
@@ -85,7 +93,7 @@ Respond with a JSON object:
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: RESPONSE_SYSTEM_PROMPT },
-      { role: "user", content: userPrompt },
+      { role: "user", content: userPrompt + citationHint },
     ],
   });
 
