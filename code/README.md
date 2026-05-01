@@ -1,99 +1,110 @@
-# Support Triage Agent
+# ⚡ Support Triage Agent
 
-A terminal-based AI agent that triages support tickets across **HackerRank**, **Claude**, and **Visa** ecosystems using a local support corpus.
+A highly deterministic, terminal-based AI triage pipeline built for the HackerRank Orchestrate 2026 hackathon.
 
-## Architecture
+This agent processes support tickets across three ecosystems (HackerRank, Claude, and Visa), retrieves relevant context from a local markdown corpus using hybrid vector search, and intelligently routes tickets between automated replies and human escalation.
 
+**Built with Bun, TypeScript, and OpenAI (`gpt-4o` + `text-embedding-3-small`).**
+
+---
+
+## 🎯 Key Differentiators
+
+This agent goes beyond basic RAG by implementing a robust, defensive architecture designed specifically for the evaluation rubric:
+
+1. **Adversarial Pre-processing (Safety Guard):** Runs a deterministic, zero-cost regex gate *before* any LLM calls. Detects prompt injections, jailbreaks, and adversarial executable requests (e.g., "ignore previous instructions", "delete all files") and instantly flags them as invalid.
+2. **Multi-Request Decomposition:** Automatically detects compound tickets (tickets with multiple unrelated requests) using heuristics, uses the LLM to cleanly split them into sub-requests, processes each independently, and merges the responses.
+3. **LLM Query Expansion:** Messy user tickets are rewritten by the LLM into 2-3 clean, targeted search queries. Acronyms are expanded, noise is removed, and non-English tickets are translated to English to maximize vector retrieval recall.
+4. **Deterministic Confidence Scoring:** Computes a 0–1 confidence score based purely on mathematical signals (retrieval quality, chunk count, corpus coverage boolean, risk penalty). Very low confidence triggers an automatic escalation, making the system principled and explainable.
+5. **Corpus Traceability:** The `justification` output field explicitly cites the exact source files used to ground the response (e.g., *"[Delete an Account] from the corpus"*).
+6. **Structured JSON Logging:** Writes a detailed JSON trace to the `logs/` directory for *every single ticket*. It tracks timing, safety checks, decomposed sub-requests, expanded queries, chunk retrieval scores, and confidence breakdowns. **Invaluable for understanding exactly why the agent made a specific decision.**
+
+---
+
+## 🏗️ Architecture Pipeline
+
+The agent processes the `support_tickets.csv` through a strictly typed 7-stage pipeline:
+
+```text
+CSV Input → Zod Validation
+  ↓
+[1] Safety Guard          ← Zero-cost injection/jailbreak detection
+  ↓
+[2] Decomposer            ← Splits compound tickets (e.g., "Refund me AND how do I login?")
+  ↓
+  (For each sub-request)
+  [3] Query Expander      ← Rewrites ticket into 2-3 clean search queries
+  [4] Multi-Query RAG     ← Retrieves & deduplicates chunks from Vectra index
+  [5] Classifier          ← Extracts product area, risk level, request type
+  [6] Confidence & Gate   ← Deterministic escalation gate (default-to-reply)
+  [7] Responder           ← Generates grounded response with corpus citations
+  ↓
+Merge Sub-results
+  ↓
+[8] JSON Logger           ← Writes full trace to logs/ticket-XXX.json
+  ↓
+CSV Output → output.csv
 ```
-Ticket CSV → Parse → Retrieve (vector search) → Classify (LLM) → Escalation Gate → Respond (LLM) → Output CSV
-```
 
-**Key design decisions:**
-- **Structured pipeline** over agentic loop — deterministic, debuggable, auditable
-- **Vector retrieval** (vectra) for precise corpus lookup from 774 markdown articles
-- **Rule-based + LLM-informed escalation** — explicit safety gates, no silent failures
-- **Grounded responses only** — strict system prompts enforce corpus-only sourcing
+---
 
-## Prerequisites
+## 🚀 Setup & Usage
 
-- [Bun](https://bun.sh/) v1.2+
-- OpenAI API key
+### 1. Prerequisites
+- **[Bun](https://bun.sh/)** installed (`v1.0.0+`)
+- An OpenAI API Key with credits
 
-## Setup
-
+### 2. Installation
 ```bash
 cd code
 bun install
-cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
 ```
 
-## Usage
-
+### 3. Configuration
+Copy the environment template and add your API key:
 ```bash
-# Run on the main support_tickets.csv
-bun run start
+cp .env.example .env
+```
+Ensure `OPENAI_API_KEY` is set in your `.env` file.
 
-# Run on sample_support_tickets.csv (for development/testing)
+### 4. Running the Agent
+
+**Run against the sample CSV (for testing):**
+```bash
 bun run start:sample
-
-# Force rebuild the vector index
-bun run start:rebuild
 ```
 
-## Project Structure
-
-```
-code/
-├── src/
-│   ├── main.ts          # CLI entry point — orchestrates the pipeline
-│   ├── config.ts        # Environment config + path resolution
-│   ├── schemas.ts       # Zod schemas for all data structures
-│   ├── ui.ts            # Rich terminal UI (spinners, progress, tables)
-│   ├── csv-io.ts        # CSV reading and writing
-│   ├── corpus-loader.ts # Corpus walking, parsing, chunking
-│   ├── indexer.ts       # Embedding + vectra vector store
-│   ├── retriever.ts     # Domain-scoped retrieval
-│   ├── classifier.ts    # LLM-powered ticket classification
-│   ├── escalation.ts    # Rule-based escalation gate
-│   └── responder.ts     # Grounded response generation
-├── package.json
-├── tsconfig.json
-├── .env.example
-└── README.md
+**Run against the main production CSV:**
+```bash
+bun run start
 ```
 
-## Pipeline Stages
+**Force rebuild the vector index:**
+*(The index is cached in `data/index/` after the first run. Use this if the corpus changes).*
+```bash
+bun run start --rebuild
+```
 
-1. **Corpus Loading** — Walks `data/` directories, parses YAML frontmatter, cleans markdown
-2. **Indexing** — Chunks articles (~500 words), embeds via OpenAI, stores in vectra (cached)
-3. **Ticket Parsing** — Reads CSV, normalizes company names, validates with Zod
-4. **Retrieval** — Domain-scoped vector search, falls back to cross-domain for `None`
-5. **Classification** — LLM structured output: request type, product area, risk level
-6. **Escalation** — Rule-based gates + LLM risk signal → `replied` or `escalated`
-7. **Response** — Grounded generation with corpus-only sourcing, or escalation message
-8. **Output** — Validated and written to `support_tickets/output.csv`
+---
 
-## Escalation Logic
+## 📁 Output & Logging
 
-The agent escalates when:
-- Risk is `critical` (fraud, identity theft, security vulnerabilities)
-- Risk is `high` and corpus doesn't cover the topic
-- Ticket involves: account restoration, score changes, refunds, subscription cancellation
-- Vague requests with insufficient context and no company
-- System outages or broad failures
+- **Predictions:** Written to `../support_tickets/output.csv`.
+- **Ticket Traces:** Written to `logs/ticket-XXX.json`. Open these to see the exact queries, scores, and decision logic for any ticket.
+- **Run Summary:** Written to `logs/summary.json` containing accuracy, duration, and confidence averages.
 
-The agent replies (even as `invalid`) when:
-- Topic is off-topic with no risk
-- Simple acknowledgments (thank you)
-- Prompt injection attempts (replied as out-of-scope, not escalated)
+---
 
-## Environment Variables
+## 🛠️ Tech Stack
 
-| Variable | Default | Description |
-|---|---|---|
-| `OPENAI_API_KEY` | (required) | Your OpenAI API key |
-| `OPENAI_MODEL` | `gpt-4o` | Model for classification and response |
-| `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
-| `RETRIEVAL_TOP_K` | `8` | Number of chunks to retrieve |
-| `RETRIEVAL_THRESHOLD` | `0.68` | Minimum similarity score |
+- **Runtime:** Bun
+- **Language:** TypeScript (Strict mode)
+- **AI/LLM:** OpenAI API (`gpt-4o` for logic, `text-embedding-3-small` for embeddings)
+- **Vector Store:** `vectra` (Local, serverless JSON-based vector database)
+- **Validation:** `zod`
+- **CLI/UI:** `ora` (spinners), `chalk` (colors), `boxen` (banners), `cli-table3` (stats)
+- **Parsing:** `csv-parse`, `csv-stringify`, `gray-matter` (markdown frontmatter)
+
+---
+
+*Designed for the HackerRank Orchestrate Hackathon — May 2026*
